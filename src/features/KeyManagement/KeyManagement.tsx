@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
+import { DestructiveConfirmDialog } from "~/components/ui"
 import { MENU_ITEM_IDS } from "~/constants/optionsMenuIds"
 import { RuntimeActionIds } from "~/constants/runtimeActions"
 import { SITE_TYPES } from "~/constants/siteType"
@@ -88,10 +89,12 @@ export default function KeyManagement(props: {
   routeParams?: Record<string, string>
 }) {
   const { routeParams } = props
-  const { t } = useTranslation("keyManagement")
+  const { t } = useTranslation(["keyManagement", "common"])
   const [isRepairOpen, setIsRepairOpen] = useState(false)
   const [repairStartOnOpen, setRepairStartOnOpen] = useState(false)
   const [isAccountSelectorOpen, setIsAccountSelectorOpen] = useState(false)
+  const [deleteTokenTarget, setDeleteTokenTarget] =
+    useState<AccountToken | null>(null)
   const accountSelectorTriggerRef = useRef<HTMLButtonElement>(null)
   const verification = useNewApiManagedVerification()
   const {
@@ -180,6 +183,20 @@ export default function KeyManagement(props: {
   const handleCloseRepairMissingKeys = () => {
     setIsRepairOpen(false)
     setRepairStartOnOpen(false)
+  }
+
+  const handleRequestDeleteToken = (token: AccountToken) => {
+    setDeleteTokenTarget(token)
+  }
+
+  const handleConfirmDeleteToken = () => {
+    if (!deleteTokenTarget) {
+      return
+    }
+
+    const token = deleteTokenTarget
+    setDeleteTokenTarget(null)
+    void handleDeleteToken(token)
   }
 
   const handleAccountSummaryClick = (accountId: string) => {
@@ -348,7 +365,7 @@ export default function KeyManagement(props: {
         toggleKeyVisibility={toggleKeyVisibility}
         copyKey={copyKey}
         handleEditToken={handleEditToken}
-        handleDeleteToken={handleDeleteToken}
+        handleDeleteToken={handleRequestDeleteToken}
         handleAddToken={handleAddToken}
         onAddAccount={handleOpenAccountManagement}
         onRequestAccountSelection={handleRequestAccountSelection}
@@ -390,6 +407,18 @@ export default function KeyManagement(props: {
         onClose={handleCloseRepairMissingKeys}
         accounts={displayData}
         startOnOpen={repairStartOnOpen}
+      />
+
+      <DestructiveConfirmDialog
+        isOpen={Boolean(deleteTokenTarget)}
+        onClose={() => setDeleteTokenTarget(null)}
+        title={t("keyManagement:actions.deleteKey")}
+        description={t("messages.deleteConfirm", {
+          name: deleteTokenTarget?.name ?? "",
+        })}
+        cancelLabel={t("common:actions.cancel")}
+        confirmLabel={t("common:actions.delete")}
+        onConfirm={handleConfirmDeleteToken}
       />
 
       <NewApiManagedVerificationDialog
